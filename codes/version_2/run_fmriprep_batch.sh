@@ -109,6 +109,21 @@ while read -r line || [[ -n "$line" ]]; do
     if [ $? -eq 0 ]; then
         echo "sub-${SUBJ} processing complete!"
         touch "${DERIVS_DIR}/fmriprep/.success_sub-${SUBJ}"
+
+        # ---- Auto-cleanup: free disk space after a subject succeeds ----
+        # Remove the work scratch for this completed subject (~30-40 GB each).
+        # Runs only after the .success marker, so resume for other/failed
+        # subjects is preserved. fMRIPrep runs Docker as root, so the work
+        # files are root-owned; delete them from a throwaway container so that
+        # no sudo/password is needed.
+        SUBJ_WORK="fmriprep_wf/single_subject_${SUBJ}_wf"
+        if [ -d "${WORK_DIR}/${SUBJ_WORK}" ]; then
+            echo "Cleaning work scratch for sub-${SUBJ} to free disk space..."
+            docker run --rm --entrypoint rm \
+                -v ${WORK_DIR}:/work \
+                nipreps/fmriprep:20.2.7 \
+                -rf "/work/${SUBJ_WORK}"
+        fi
     else
         echo "sub-${SUBJ} processing failed, please check Docker error messages."
         # You can choose not to exit and continue to the next person, or exit 1 here
