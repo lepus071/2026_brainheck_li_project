@@ -30,6 +30,10 @@ SUBJ_LIST="/home/ser/2026_brainhack_li_project/codes/subjectlist.txt"
 # fMRIPrep working cache directory (for resume on interruption, very important!)
 WORK_DIR="/home/ser/2026_brainhack_li_project/work"
 
+# Persistent TemplateFlow cache on C: (always-available; avoids re-downloading
+# templates on every --rm run). Mounted into the container below.
+TF_HOST="/home/ser/templateflow"
+
 # Computer resource allocation
 NTHREADS=2       # Extreme downscaling: only allow 2 cores to completely prevent ICA-AROMA simultaneous bursts
 MEM_MB=12288     # Reduce Docker memory limit to 12GB (leave 4GB for Windows system survival)
@@ -55,6 +59,7 @@ fi
 
 mkdir -p "${DERIVS_DIR}"
 mkdir -p "${WORK_DIR}"
+mkdir -p "${TF_HOST}"
 
 # -- 2. Execution loop --------------------------------------------------------------
 
@@ -93,6 +98,8 @@ while read -r line || [[ -n "$line" ]]; do
         -v ${DERIVS_DIR}:/out \
         -v ${FS_LICENSE}:/opt/freesurfer/license.txt:ro \
         -v ${WORK_DIR}:/work \
+        -e TEMPLATEFLOW_HOME=/templateflow \
+        -v ${TF_HOST}:/templateflow \
         nipreps/fmriprep:20.2.7 \
         /data /out participant \
         --participant-label ${SUBJ} \
